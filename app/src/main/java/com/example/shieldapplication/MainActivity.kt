@@ -1,5 +1,6 @@
 package com.example.shieldapplication
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,16 +25,20 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    val infinityTransition = rememberInfiniteTransition()
-                    val animationScale by infinityTransition.animateFloat(
-                        initialValue = 0f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1000),
-                            repeatMode = RepeatMode.Restart
-                        )
+//                    val infinityTransition = rememberInfiniteTransition()
+//                    val animationScale by infinityTransition.animateFloat(
+//                        initialValue = 0f,
+//                        targetValue = 1f,
+//                        animationSpec = infiniteRepeatable(
+//                            animation = tween(1000),
+//                            repeatMode = RepeatMode.Restart
+//                        )
+//                    )
+                    Shield(
+                        process = 0f,
+                        scanColor = Color.BLACK.hashCode(),
+                        repeatDuration = 1000
                     )
-                    Shield(process = animationScale, scanColor = 0, repeatDuration = 1000)
                 }
             }
         }

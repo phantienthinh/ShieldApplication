@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.PathParser
@@ -41,7 +42,8 @@ fun Shield(
     process: Float,
     scanColor: Int = Color(0xFF000000).hashCode(),
     repeatDuration: Int = 1000,
-    modifier: Modifier = Modifier.fillMaxSize()
+    modifier: Modifier = Modifier.fillMaxSize(),
+    onFinish: () -> Unit = {}
 ) {
     val percent by remember {
         mutableStateOf("${(process * 100).toInt()} %")
@@ -85,25 +87,14 @@ fun Shield(
         )
     )
 
-    val startAngle by infinityTransition.animateFloat(
-        initialValue = -90f,
-        targetValue = 270f,
+    val animValue by infinityTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = repeatDuration),
+            animation = tween(durationMillis = 1000),
             repeatMode = RepeatMode.Restart
         )
     )
-    val sweepAngle by infinityTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 70f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = repeatDuration
-            ),
-            repeatMode = RepeatMode.Restart,
-        ),
-
-        )
 
     Canvas(
         modifier = modifier
@@ -133,19 +124,11 @@ fun Shield(
 
         }) {
 
-            val eccentric = (bound.height - bound.left) + 50
-
-            clipPath(path = pathBodyShield) {
-                drawRect(Color(0x33FFFFFF))
-                drawArc(
-                    color = Color(0x4DFFFFFF),
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
-                    useCenter = true,
-                    topLeft = Offset(bound.top - eccentric / 2, bound.left - eccentric / 2),
-                    size = Size(bound.right + eccentric, bound.bottom + eccentric),
-                )
-            }
+            drawScan(
+                path = pathBodyShield,
+                bound = bound,
+                animValue = animValue
+            )
 
             drawPath(path = pathShield, color = Color.White)
             drawPath(path = pathShieldChild, color = Color.White, alpha = 0.3f)
@@ -154,18 +137,44 @@ fun Shield(
 
 
             drawPercent(percent = percent, bound = bound, paint = paint)
+            drawScaleShield(
+                path = pathBodyShield,
+                offset = bound.center,
+                animScaleValue = animationScale,
+                animStrokeValue = shieldStroke,
+                alphaValue = shieldStrokeAlpha
+            )
 
-
-            scale(animationScale, pivot = bound.center) {
-                drawPath(
-                    path = pathBodyShield,
-                    color = Color.White,
-                    style = Stroke(shieldStroke),
-                    alpha = shieldStrokeAlpha
-                )
+            if (process == 1f) {
+                onFinish()
             }
-
         }
+    }
+}
+
+private fun DrawScope.drawScan(path: Path, bound: Rect, animValue: Float) {
+    val eccentric = (bound.height - bound.width) + 50
+
+    val endAngle = convertValue(animValue, 0f, 1f, 0f, 360f)
+
+    val startAngle = if (endAngle < 180) {
+        endAngle / 3f
+    } else {
+        convertValue(endAngle, 180f, 360f, 60f, 360f)
+    }
+
+    val sweepAngle = endAngle - startAngle
+
+    clipPath(path = path) {
+        drawRect(Color(0x33FFFFFF))
+        drawArc(
+            color = Color(0x4DFFFFFF),
+            startAngle = startAngle - 90,
+            sweepAngle = sweepAngle,
+            useCenter = true,
+            topLeft = Offset(bound.top - eccentric / 2, bound.left - eccentric / 2),
+            size = Size(bound.right + eccentric, bound.bottom + eccentric),
+        )
     }
 }
 
@@ -187,15 +196,42 @@ private fun DrawScope.drawPercent(
     }
 }
 
+private fun DrawScope.drawScaleShield(
+    path: Path,
+    offset: Offset,
+    animScaleValue: Float,
+    animStrokeValue: Float,
+    alphaValue: Float
+) {
+    scale(animScaleValue, pivot = offset) {
+        drawPath(
+            path = path,
+            color = Color.White,
+            style = Stroke(animStrokeValue),
+            alpha = alphaValue
+        )
+    }
+}
+
+private fun convertValue(
+    currValue: Float,
+    min1: Float,
+    max1: Float,
+    min2: Float,
+    max2: Float
+): Float {
+    return (currValue - min1) / (max1 - min1) * (max2 - min2) + min2
+}
+
 @Preview()
 @Composable
 private fun Preview() {
     ShieldApplicationTheme {
         Shield(
-            process = 0.2f, scanColor = Color.Yellow.hashCode(), repeatDuration = 1000,
+            process = 0.3f, scanColor = Color.Black.hashCode(), repeatDuration = 1000,
             modifier = Modifier.size(
-                width = 250.dp,
-                height = 150.dp
+                width = 750.dp,
+                height = 850.dp
             )
         )
     }
